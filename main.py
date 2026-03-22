@@ -147,7 +147,7 @@ def send_message(text):
         response = requests.get(url, params=params, timeout=10)
 
         if response.status_code != 200:
-            print(f"Ошибка Telegram: {response.status_code} | {responce.text}")
+            print(f"Ошибка Telegram: {response.status_code} | {response.text}")
     except Exception as e:
         print(f"Ошибка отправки в Telegram: {e}")
 

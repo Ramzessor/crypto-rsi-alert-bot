@@ -9,4 +9,4 @@ RSI_OVERBOUGHT = 70
 RSI_OVERSOLD = 30
 
 # Задержка (секунды)
-SLEEP_TIME = 10
+SLEEP_TIME = 60
