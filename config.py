@@ -1,0 +1,12 @@
+# Биржа
+SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+INTERVAL = "1h"
+LIMIT = 100
+
+# RSI уровни
+RSI_PERIOD = 14
+RSI_OVERBOUGHT = 70
+RSI_OVERSOLD = 30
+
+# Задержка (секунды)
+SLEEP_TIME = 10
