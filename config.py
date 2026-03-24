@@ -7,6 +7,3 @@ LIMIT = 100
 RSI_PERIOD = 14
 RSI_OVERBOUGHT = 70
 RSI_OVERSOLD = 30
-
-# Задержка (секунды)
-SLEEP_TIME = 60
