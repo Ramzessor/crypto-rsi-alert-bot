@@ -32,11 +32,18 @@ def initialize_rsi_state(closes, candle_time):
         avg_gain = ((avg_gain * (RSI_PERIOD - 1)) + gains[i]) / RSI_PERIOD
         avg_loss = ((avg_loss * (RSI_PERIOD - 1)) + losses[i]) / RSI_PERIOD
 
+    if avg_loss == 0:
+        rsi = 100
+    else:
+        rs = avg_gain / avg_loss
+        rsi = 100 - (100 / (1 + rs))
+
     return {
         "avg_gain": avg_gain,
         "avg_loss": avg_loss,
         "last_close": closes[-1],
         "last_candle_time": candle_time,
+        "rsi": rsi,
     }
 
 
@@ -62,10 +69,12 @@ def update_rsi_state(state, new_close, new_candle_time):
     state["last_candle_time"] = new_candle_time
 
     if avg_loss == 0:
-        return 100
+        rsi = 100
+    else:
+        rs = avg_gain / avg_loss
+        rsi = 100 - (100 / (1 + rs))
 
-    rs = avg_gain / avg_loss
-    rsi = 100 - (100 / (1 + rs))
+    state["rsi"] = rsi
 
     return rsi
 
@@ -73,7 +82,6 @@ def update_rsi_state(state, new_close, new_candle_time):
 def get_signal(rsi):
     if rsi < RSI_OVERSOLD:
         return "перепродан"
-    elif rsi > RSI_OVERBOUGHT:
+    if rsi > RSI_OVERBOUGHT:
         return "перекуплен"
-    else:
-        return "нейтрален"
+    return "нейтрален"
