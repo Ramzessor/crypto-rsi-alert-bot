@@ -1,6 +1,6 @@
 import time
 from app.utils.indicators import update_rsi_state, get_signal
-from app.services.binance import get_candles, get_last_candle_info
+from app.services.binance import get_candles, get_last_closed_candle_info
 from app.services.telegram import send_message
 
 
@@ -11,7 +11,7 @@ def process_symbol(symbol, rsi_states, last_signals):
         print(f"{symbol} | не удалось получить данные")
         return False
 
-    candle_time, close_price = get_last_candle_info(data)
+    candle_time, close_price = get_last_closed_candle_info(data)
     if candle_time is None:
         print(f"{symbol} | недостаточно данных по свечам")
         return False
@@ -29,7 +29,7 @@ def process_symbol(symbol, rsi_states, last_signals):
 
     print(f"{symbol} | RSI: {rsi:.2f} | signal: {signal}")
 
-    last_signal = last_signals.get(symbol, None)
+    last_signal = last_signals.get(symbol)
 
     if signal != last_signal:
         if signal != "нейтрален":
