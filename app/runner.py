@@ -1,50 +1,88 @@
 import time
-from config import SYMBOLS
+
+from config import SYMBOLS, RSI_PERIOD
 from app.state import RuntimeState
-from app.utils.timing import get_sleep_time
-from app.utils.indicators import initialize_rsi_state
 from app.services.binance import (
     get_candles,
-    get_last_candle_info,
-    get_closes,
+    get_closed_candles,
+    get_closes_from_candles,
+    get_last_closed_candle_time,
 )
 from app.services.processor import catch_up
+from app.utils.indicators import initialize_rsi_state, get_signal
+from app.utils.timing import get_sleep_time
 
 
-def run_bot():
-    print("Bot started...")
-    state = RuntimeState()
+def startup_sync(symbols, rsi_states, last_signals):
+    print("Запуск startup sync...")
 
-    for symbol in SYMBOLS:
+    for symbol in symbols:
         data = get_candles(symbol)
 
         if data is None:
-            print(f"{symbol} | не удалось получить данные")
+            print(f"{symbol} | не удалось получить данные для инициализации")
             continue
 
-        closes = get_closes(data)
-        candle_time, _ = get_last_candle_info(data)
+        closed_candles = get_closed_candles(data)
 
-        if candle_time is None:
-            print(f"{symbol} | недостаточно данных по свечам")
+        if len(closed_candles) < RSI_PERIOD + 1:
+            print(f"{symbol} | недостаточно закрытых свечей для инициализации")
             continue
 
-        rsi_state = initialize_rsi_state(closes, candle_time)
+        closes = get_closes_from_candles(closed_candles)
+        last_candle_time = get_last_closed_candle_time(closed_candles)
 
-        if rsi_state is not None:
-            state.rsi_states[symbol] = rsi_state
-            state.last_signals[symbol] = None
-            print(f"{symbol} | состояние RSI инициализировано")
-        else:
-            print(f"{symbol} | не удалось инициализировать RSI")
+        state = initialize_rsi_state(
+            closes=closes,
+            candle_time=last_candle_time,
+        )
+
+        if state is None:
+            print(f"{symbol} | не удалось инициализировать RSI state")
+            continue
+
+        rsi_states[symbol] = state
+
+        current_signal = get_signal(state["rsi"])
+        last_signals[symbol] = current_signal
+
+        print(
+            f"{symbol} | состояние RSI инициализировано | "
+            f"RSI: {state['rsi']:.2f} | сигнал: {current_signal}"
+        )
+
+
+def run_live_loop(symbols, rsi_states, last_signals):
+    print("Переход в live-режим...")
 
     while True:
-        try:
-            sleep_time = get_sleep_time()
-            print(f"Спим {sleep_time:.2f} сек до следующей свечи")
-            time.sleep(sleep_time)
+        sleep_time = get_sleep_time()
+        print(f"Спим {sleep_time:.2f} сек до следующей свечи")
+        time.sleep(sleep_time)
 
-            catch_up(SYMBOLS, state.rsi_states, state.last_signals)
-        except Exception as e:
-            print(f"Ошибка: {e}")
-            time.sleep(5)
+        catch_up(symbols, rsi_states, last_signals)
+
+
+def run_bot():
+    state = RuntimeState(
+        rsi_states={},
+        last_signals={},
+    )
+
+    startup_sync(
+        symbols=SYMBOLS,
+        rsi_states=state.rsi_states,
+        last_signals=state.last_signals,
+    )
+
+    if not state.rsi_states:
+        print("Не удалось инициализировать ни один символ. Бот остановлен.")
+        return
+
+    active_symbols = list(state.rsi_states.keys())
+
+    run_live_loop(
+        symbols=active_symbols,
+        rsi_states=state.rsi_states,
+        last_signals=state.last_signals,
+    )
