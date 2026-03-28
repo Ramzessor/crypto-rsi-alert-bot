@@ -45,7 +45,7 @@ def process_symbol(symbol, rsi_states, last_signals):
     return True
 
 
-def catch_up(symbols, rsi_states, last_signals, timeout=20):
+def catch_up(symbols, rsi_states, last_signals, timeout=30):
     start_time = time.time()
     processed_symbols = set()
 
