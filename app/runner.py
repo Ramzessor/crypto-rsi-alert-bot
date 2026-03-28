@@ -2,6 +2,7 @@ import time
 
 from config import SYMBOLS, RSI_PERIOD
 from app.state import RuntimeState
+from app.history import create_symbol_history
 from app.services.binance import (
     get_candles,
     get_closed_candles,
@@ -9,11 +10,15 @@ from app.services.binance import (
     get_last_closed_candle_time,
 )
 from app.services.processor import catch_up
-from app.indicators.rsi import initialize_rsi_state, get_rsi_signal
+from app.indicators.rsi import (
+    initialize_rsi_state,
+    get_rsi_signal,
+    calculate_rsi_series,
+)
 from app.utils.timing import get_sleep_time
 
 
-def startup_sync(symbols, rsi_states, last_signals):
+def startup_sync(symbols, rsi_states, last_signals, history_buffers):
     print("Запуск startup sync...")
 
     for symbol in symbols:
@@ -41,6 +46,14 @@ def startup_sync(symbols, rsi_states, last_signals):
             print(f"{symbol} | не удалось инициализировать RSI state")
             continue
 
+        rsi_series = calculate_rsi_series(closes)
+        filtered_rsi_series = [value for value in rsi_series if value is not None]
+
+        history_buffers[symbol] = create_symbol_history(
+            closes=closes,
+            rsi_values=filtered_rsi_series,
+        )
+
         rsi_states[symbol] = state
 
         current_signal = get_rsi_signal(state["rsi"])
@@ -52,7 +65,7 @@ def startup_sync(symbols, rsi_states, last_signals):
         )
 
 
-def run_live_loop(symbols, rsi_states, last_signals):
+def run_live_loop(symbols, rsi_states, last_signals, history_buffers):
     print("Переход в live-режим...")
 
     while True:
@@ -60,19 +73,21 @@ def run_live_loop(symbols, rsi_states, last_signals):
         print(f"Спим {sleep_time:.2f} сек до следующей свечи")
         time.sleep(sleep_time)
 
-        catch_up(symbols, rsi_states, last_signals)
+        catch_up(symbols, rsi_states, last_signals, history_buffers)
 
 
 def run_bot():
     state = RuntimeState(
         rsi_states={},
         last_signals={},
+        history_buffers={},
     )
 
     startup_sync(
         symbols=SYMBOLS,
         rsi_states=state.rsi_states,
         last_signals=state.last_signals,
+        history_buffers=state.history_buffers,
     )
 
     if not state.rsi_states:
@@ -85,4 +100,5 @@ def run_bot():
         symbols=active_symbols,
         rsi_states=state.rsi_states,
         last_signals=state.last_signals,
+        history_buffers=state.history_buffers,
     )

@@ -1,10 +1,12 @@
 import time
+
+from app.history import append_history
 from app.indicators.rsi import update_rsi_state, get_rsi_signal
 from app.services.binance import get_candles, get_last_closed_candle_info
 from app.services.telegram import send_message
 
 
-def process_symbol(symbol, rsi_states, last_signals):
+def process_symbol(symbol, rsi_states, last_signals, history_buffers):
     data = get_candles(symbol)
 
     if data is None:
@@ -31,6 +33,10 @@ def process_symbol(symbol, rsi_states, last_signals):
     rsi = update_rsi_state(state, close_price, candle_time)
     signal = get_rsi_signal(rsi)
 
+    history = history_buffers.get(symbol)
+    if history is not None:
+        append_history(history, close_price, rsi)
+
     print(f"{symbol} | RSI: {rsi:.2f} | signal: {signal}")
 
     last_signal = last_signals.get(symbol)
@@ -45,17 +51,23 @@ def process_symbol(symbol, rsi_states, last_signals):
     return True
 
 
-def catch_up(symbols, rsi_states, last_signals, timeout=30):
+def catch_up(symbols, rsi_states, last_signals, history_buffers, timeout=30):
     start_time = time.time()
     processed_symbols = set()
 
     while time.time() - start_time < timeout:
         print(f"Catch-up loop | уже обновлены: {sorted(processed_symbols)}")
+
         for symbol in symbols:
             if symbol in processed_symbols:
                 continue
 
-            is_processed = process_symbol(symbol, rsi_states, last_signals)
+            is_processed = process_symbol(
+                symbol,
+                rsi_states,
+                last_signals,
+                history_buffers,
+            )
 
             if is_processed:
                 processed_symbols.add(symbol)
