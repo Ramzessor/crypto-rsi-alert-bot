@@ -46,6 +46,56 @@ def initialize_rsi_state(closes, candle_time):
         "rsi": rsi,
     }
 
+def calculate_rsi_series(closes):
+    if len(closes) < RSI_PERIOD + 1:
+        return []
+
+    changes = []
+
+    for i in range(1, len(closes)):
+        changes.append(closes[i] - closes[i - 1])
+
+    gains = []
+    losses = []
+
+    for change in changes:
+        if change > 0:
+            gains.append(change)
+            losses.append(0)
+        elif change < 0:
+            gains.append(0)
+            losses.append(abs(change))
+        else:
+            gains.append(0)
+            losses.append(0)
+
+    avg_gain = sum(gains[:RSI_PERIOD]) / RSI_PERIOD
+    avg_loss = sum(losses[:RSI_PERIOD]) / RSI_PERIOD
+
+    rsi_values = [None] * RSI_PERIOD
+
+    if avg_loss == 0:
+        first_rsi = 100
+    else:
+        rs = avg_gain / avg_loss
+        first_rsi = 100 - (100 / (1 + rs))
+
+    rsi_values.append(first_rsi)
+
+    for i in range(RSI_PERIOD, len(gains)):
+        avg_gain = ((avg_gain * (RSI_PERIOD - 1)) + gains[i]) / RSI_PERIOD
+        avg_loss = ((avg_loss * (RSI_PERIOD - 1)) + losses[i]) / RSI_PERIOD
+
+        if avg_loss == 0:
+            rsi = 100
+        else:
+            rs = avg_gain / avg_loss
+            rsi = 100 - (100 / (1 + rs))
+
+        rsi_values.append(rsi)
+
+    return rsi_values
+
 
 def update_rsi_state(state, new_close, new_candle_time):
     change = new_close - state["last_close"]
