@@ -49,6 +49,31 @@ def find_pivot_highs(values, left=2, right=2):
     return pivots
 
 
+def match_pivots(price_pivots, rsi_pivots, max_distance=3):
+    matched = []
+    used_rsi_indexes = set()
+
+    for price_pivot in price_pivots:
+        closest_rsi = None
+        min_distance = float("inf")
+
+        for rsi_pivot in rsi_pivots:
+            if rsi_pivot.index in used_rsi_indexes:
+                continue
+
+            distance = abs(price_pivot.index - rsi_pivot.index)
+
+            if distance <= max_distance and distance < min_distance:
+                min_distance = distance
+                closest_rsi = rsi_pivot
+
+        if closest_rsi is not None:
+            matched.append((price_pivot, closest_rsi))
+            used_rsi_indexes.add(closest_rsi.index)
+
+    return matched
+
+
 def detect_bullish_divergence(price_lows, rsi_lows):
     matched = match_pivots(price_lows, rsi_lows)
 
@@ -92,31 +117,31 @@ def detect_bearish_divergence(price_highs, rsi_highs):
 
     return None
 
-def match_pivots(price_pivots, rsi_pivots, max_distance=3):
-    matched = []
-
-    for price_pivot in price_pivots:
-        closest_rsi = None
-        min_distance = float("inf")
-
-        for rsi_pivot in rsi_pivots:
-            distance = abs(price_pivot.index - rsi_pivot.index)
-
-            if distance < min_distance and distance <= max_distance:
-                min_distance = distance
-                closest_rsi = rsi_pivot
-
-        if closest_rsi is not None:
-            matched.append((price_pivot, closest_rsi))
-
-    return matched
 
 def analyze_divergence(closes, rsi_values, left=2, right=2):
+    if len(closes) < left + right + 1 or len(rsi_values) < left + right + 1:
+        return DivergenceResult(
+            signal=None,
+            price_pivots=[],
+            rsi_pivots=[],
+            message=None,
+        )
+
+    filtered_rsi_values = [value for value in rsi_values if value is not None]
+
+    if len(filtered_rsi_values) < left + right + 1:
+        return DivergenceResult(
+            signal=None,
+            price_pivots=[],
+            rsi_pivots=[],
+            message=None,
+        )
+
     price_lows = find_pivot_lows(closes, left=left, right=right)
     price_highs = find_pivot_highs(closes, left=left, right=right)
 
-    rsi_lows = find_pivot_lows(rsi_values, left=left, right=right)
-    rsi_highs = find_pivot_highs(rsi_values, left=left, right=right)
+    rsi_lows = find_pivot_lows(filtered_rsi_values, left=left, right=right)
+    rsi_highs = find_pivot_highs(filtered_rsi_values, left=left, right=right)
 
     bullish_result = detect_bullish_divergence(price_lows, rsi_lows)
     if bullish_result is not None:
