@@ -22,6 +22,10 @@ def process_symbol(symbol, rsi_states, last_signals):
         return False
 
     if candle_time == state["last_candle_time"]:
+        print(
+            f"{symbol} | новая свеча еще не появилась | "
+            f"api_candle_time={candle_time} | state_time={state['last_candle_time']}"
+        )
         return False
 
     rsi = update_rsi_state(state, close_price, candle_time)
@@ -46,6 +50,7 @@ def catch_up(symbols, rsi_states, last_signals, timeout=20):
     processed_symbols = set()
 
     while time.time() - start_time < timeout:
+        print(f"Catch-up loop | уже обновлены: {sorted(processed_symbols)}")
         for symbol in symbols:
             if symbol in processed_symbols:
                 continue
