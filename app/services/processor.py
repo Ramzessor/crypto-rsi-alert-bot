@@ -1,6 +1,7 @@
 import time
 
-from app.history import append_history
+from app.history import append_history, get_history_lists
+from app.indicators.divergence import analyze_divergence
 from app.indicators.rsi import update_rsi_state, get_rsi_signal
 from app.services.binance import get_candles, get_last_closed_candle_info
 from app.services.telegram import send_message
@@ -36,6 +37,18 @@ def process_symbol(symbol, rsi_states, last_signals, history_buffers):
     history = history_buffers.get(symbol)
     if history is not None:
         append_history(history, close_price, rsi)
+
+        history_data = get_history_lists(history)
+        closes = history_data["closes"]
+        rsi_values = history_data["rsi_values"]
+
+        divergence_result = analyze_divergence(closes, rsi_values)
+
+        if divergence_result.signal is not None:
+            print(
+                f"{symbol} | divergence: {divergence_result.signal} | "
+                f"{divergence_result.message}"
+            )
 
     print(f"{symbol} | RSI: {rsi:.2f} | signal: {signal}")
 
