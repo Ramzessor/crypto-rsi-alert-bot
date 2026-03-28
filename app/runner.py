@@ -9,7 +9,7 @@ from app.services.binance import (
     get_last_closed_candle_time,
 )
 from app.services.processor import catch_up
-from app.utils.indicators import initialize_rsi_state, get_signal
+from app.indicators.rsi import initialize_rsi_state, get_rsi_signal
 from app.utils.timing import get_sleep_time
 
 
@@ -43,7 +43,7 @@ def startup_sync(symbols, rsi_states, last_signals):
 
         rsi_states[symbol] = state
 
-        current_signal = get_signal(state["rsi"])
+        current_signal = get_rsi_signal(state["rsi"])
         last_signals[symbol] = current_signal
 
         print(

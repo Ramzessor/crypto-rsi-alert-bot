@@ -1,5 +1,5 @@
 import time
-from app.utils.indicators import update_rsi_state, get_signal
+from app.indicators.rsi import update_rsi_state, get_rsi_signal
 from app.services.binance import get_candles, get_last_closed_candle_info
 from app.services.telegram import send_message
 
@@ -29,7 +29,7 @@ def process_symbol(symbol, rsi_states, last_signals):
         return False
 
     rsi = update_rsi_state(state, close_price, candle_time)
-    signal = get_signal(rsi)
+    signal = get_rsi_signal(rsi)
 
     print(f"{symbol} | RSI: {rsi:.2f} | signal: {signal}")
 
